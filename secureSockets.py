@@ -11,7 +11,7 @@ __keySize = 3072
 lock = threading.Lock()
 
 # todo, make this save the key to a file to save time so that a new key doesnt have to be generated each time
-__PRIVRSA, __PUBRSA = rsaGenerator(__keySize).generate()
+PRIVRSA, PUBRSA = rsaGenerator(__keySize).generate()
 
 
 # todo, add udp support
@@ -89,7 +89,7 @@ class secureSocket(socket.socket):
 
     def __sendRSA(self):
         if self.fileno() != -1:
-            self.sock.sendall(self.__addLen(b'\x00' + __PUBRSA.export_key()))
+            self.sock.sendall(self.__addLen(b'\x00' + PUBRSA.export_key()))
             return True
         return False
 
@@ -114,7 +114,7 @@ class secureSocket(socket.socket):
         if secKey is False:
             return False
         if secKey[0:1] == b'\x01':
-            return decryptRSAsingle(secKey[1:], __PRIVRSA)
+            return decryptRSAsingle(secKey[1:], PRIVRSA)
 
 
 def __test1(sock):
