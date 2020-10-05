@@ -1,7 +1,6 @@
 import socket
 from RSAenc import *
 from AES import *
-import sys
 from typing import Any, Iterable, Tuple, List, Optional, Union, overload, TypeVar, Text
 
 _Address = Union[tuple, str]
