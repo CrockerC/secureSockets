@@ -1,7 +1,7 @@
 import socket
 from RSAenc import *
 from AES import *
-from typing import Any, Iterable, Tuple, List, Optional, Union, overload, TypeVar, Text
+from typing import Any, Tuple, Union
 
 _Address = Union[tuple, str]
 _RetAddress = Any
@@ -119,7 +119,7 @@ class secureSocket(socket.socket):
             return decryptRSAsingle(secKey[1:], PRIVRSA)
 
 
-def test1(sock):
+def __test1(sock):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('localhost', 10000))
     sock.listen(1)
@@ -131,7 +131,7 @@ def test1(sock):
     sock1.sendall_sec(bytes("Success 2!", 'utf-8'))
 
 
-def test2(sock):
+def __test2(sock):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.connect_sec(('localhost', 10000))
 
@@ -147,5 +147,5 @@ if __name__ == "__main__":
     s1 = secureSocket(socket.AF_INET, socket.SOCK_STREAM)
     s2 = secureSocket(socket.AF_INET, socket.SOCK_STREAM)
 
-    threading.Thread(target=test1, args=(s1,)).start()
-    threading.Thread(target=test2, args=(s2,)).start()
+    threading.Thread(target=__test1, args=(s1,)).start()
+    threading.Thread(target=__test2, args=(s2,)).start()
