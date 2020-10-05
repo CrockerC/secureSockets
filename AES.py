@@ -14,19 +14,6 @@ from multiprocessing import cpu_count
 # the used mode is OCB since it has built in validation
 mode = AES.MODE_CTR
 
-
-def encryptAllAES(data, key):
-    # data needs to be a list of bytes objects (preferably compressed)
-    try:
-        return [encryptAES(datum, key) for datum in data]
-    except TypeError:
-        return [encryptAES(datum, key) for datum in [data]]
-
-
-def decryptAllAES(data, key):
-    return [decryptAES(datum, key) for datum in data]
-
-
 def encryptAES(data, key):
     cipher = AES.new(key, mode)
     if isinstance(data, bytes):
