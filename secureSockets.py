@@ -9,6 +9,7 @@ _RetAddress = Any
 
 keySize = 3072
 
+lock = threading.Lock()
 
 # todo, make this save the key to a file to save time so that a new key doesnt have to be generated each time
 PRIVRSA, PUBRSA = rsaGenerator(keySize).generate()
@@ -16,19 +17,21 @@ PRIVRSA, PUBRSA = rsaGenerator(keySize).generate()
 
 # todo, add udp support
 # todo, add more socket functions
-
+# todo, figure out how to make accepted socks secureSockets instead of having them be secureSockets containing normal sockets
+# todo, maybe not make the secureSocket inherit the socket class, just contain one?
 
 class secureSocket(socket.socket):
     def __init__(self, *args):
         super(secureSocket, self).__init__()
         self.pubRSAKey = None
         self.secKey = None
+        self.sock = self
 
     def connect_sec(self, address: Union[_Address, bytes]) -> None:
         self.connect(address)
         self.__sendRSA()
         self.pubRSAKey = self.__getRSA()
-        self.secKey, _ = self.__genSendSecKey()
+        self.secKey = self.__genSendSecKey()
 
     def connect_ex_sec(self, address: Union[_Address, bytes]) -> int:
         suc = self.connect_ex(address)
@@ -36,27 +39,28 @@ class secureSocket(socket.socket):
             return suc
         self.__sendRSA()
         self.pubRSAKey = self.__getRSA()
-        self.secKey, _ = self.__genSendSecKey()
-
+        self.secKey = self.__genSendSecKey()
         return suc
 
-    def accept_sec(self) -> Tuple[socket, _RetAddress]:
-        ret = self.accept()
-        self.pubRSAKey = self.__getRSA()
-        self.__sendRSA()
-        self.secKey = self.__getSecKey()
+    def accept_sec(self) -> Tuple[socket.socket, _RetAddress]:
+        sock, addr = self.accept()
+        nSock = secureSocket(sock)
+        nSock.sock = sock
 
-        return ret
+        nSock.pubRSAKey = nSock.__getRSA()
+        nSock.__sendRSA()
+        nSock.secKey = nSock.__getSecKey()
+        return nSock, addr
 
-    def sendall_sec(self, data: bytes, flags: int = ...) -> None:
-        encrypted = encryptAES(data, self.secKey)
-        self.sendall(self.__addLen(encrypted), flags)
+    def sendall_sec(self, data: bytes, flags: int = 0) -> None:
+        encrypted = bytes(encryptAES(data, self.secKey), 'utf-8')
+        self.sock.sendall(self.__addLen(encrypted), flags)
 
-    def recv_sec(self, timeout: int = None, st: bool = False, flags: int = ...,) -> bytes:
-        data = self.__recv_data(flags, timeout, st)
+    def recv_sec(self, timeout: int = None, st: bool = False, flags: int = 0) -> bytes:
+        data = self.__recv_data(timeout, st, flags)
         return decryptAES(data, self.secKey)
 
-    def __recv_data(self, flags, timeout=None, st=False):
+    def __recv_data(self, timeout=None, st=False, flags: int = 0):
         if timeout is not None:
             self.settimeout(timeout)
         lenData = self.__recvall(4, flags)
@@ -74,28 +78,30 @@ class secureSocket(socket.socket):
     def __recvall(self, n, flags):
         data = bytearray()
         while len(data) < n:
-            packet = self.recv(n - len(data), flags)
+            packet = self.sock.recv(n - len(data), flags)
             if not packet:
                 return False
             data.extend(packet)
         return data
 
-    def __addLen(self, data):
+    @staticmethod
+    def __addLen(data):
         return struct.pack('>I', len(data)) + data
 
     def __sendRSA(self):
         if self.fileno() != -1:
-            self.sendall(self.__addLen(b'\x00' + PUBRSA.export_key()))
+            self.sock.sendall(self.__addLen(b'\x00' + PUBRSA.export_key()))
             return True
         return False
 
     def __getRSA(self):
-        hello = self.__recv_data(3)
-        if not hello:
+
+        data = self.__recv_data(3)
+
+        if not data:
             return False
-        if hello[0:1] == b'\x00':
-            hello = hello[1:]
-            RSAkey = RSA.import_key(hello)
+        if data[0:1] == b'\x00':
+            RSAkey = RSA.import_key(data[1:])
             return RSAkey
         else:
             return False
@@ -103,9 +109,8 @@ class secureSocket(socket.socket):
     def __genSendSecKey(self):
         key = genAESKey()
         data = encryptRSAsingle(key, self.pubRSAKey)
-        self.sendall(self.__addLen(b'\x01' + data))
-
-        return key, data
+        self.sock.sendall(self.__addLen(b'\x01' + data))
+        return key
 
     def __getSecKey(self):
         secKey = self.__recv_data(3)
@@ -113,3 +118,35 @@ class secureSocket(socket.socket):
             return False
         if secKey[0:1] == b'\x01':
             return decryptRSAsingle(secKey[1:], PRIVRSA)
+
+
+def test1(sock):
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('localhost', 10000))
+    sock.listen(1)
+    sock1, addr = sock.accept_sec()
+
+    data = str(sock1.recv_sec(), 'utf-8')
+    print(data)
+
+    sock1.sendall_sec(bytes("Success 2!", 'utf-8'))
+
+
+def test2(sock):
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.connect_sec(('localhost', 10000))
+
+    sock.sendall_sec(bytes("Success 1!", 'utf-8'))
+
+    data = str(sock.recv_sec(), 'utf-8')
+    print(data)
+
+
+if __name__ == "__main__":
+    import threading
+
+    s1 = secureSocket(socket.AF_INET, socket.SOCK_STREAM)
+    s2 = secureSocket(socket.AF_INET, socket.SOCK_STREAM)
+
+    threading.Thread(target=test1, args=(s1,)).start()
+    threading.Thread(target=test2, args=(s2,)).start()
