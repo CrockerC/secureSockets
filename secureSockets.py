@@ -6,12 +6,12 @@ from typing import Any, Tuple, Union
 _Address = Union[tuple, str]
 _RetAddress = Any
 
-keySize = 3072
+__keySize = 3072
 
 lock = threading.Lock()
 
 # todo, make this save the key to a file to save time so that a new key doesnt have to be generated each time
-PRIVRSA, PUBRSA = rsaGenerator(keySize).generate()
+__PRIVRSA, __PUBRSA = rsaGenerator(__keySize).generate()
 
 
 # todo, add udp support
@@ -89,14 +89,12 @@ class secureSocket(socket.socket):
 
     def __sendRSA(self):
         if self.fileno() != -1:
-            self.sock.sendall(self.__addLen(b'\x00' + PUBRSA.export_key()))
+            self.sock.sendall(self.__addLen(b'\x00' + __PUBRSA.export_key()))
             return True
         return False
 
     def __getRSA(self):
-
         data = self.__recv_data(3)
-
         if not data:
             return False
         if data[0:1] == b'\x00':
@@ -116,7 +114,7 @@ class secureSocket(socket.socket):
         if secKey is False:
             return False
         if secKey[0:1] == b'\x01':
-            return decryptRSAsingle(secKey[1:], PRIVRSA)
+            return decryptRSAsingle(secKey[1:], __PRIVRSA)
 
 
 def __test1(sock):
