@@ -1,6 +1,6 @@
 
 import socket
-from _socket import getdefaulttimeout
+import sys
 from RSAenc import *
 from AES import *
 from typing import Any, Tuple, Union
