@@ -212,39 +212,3 @@ def decryptRSAsingle(data, key, keySize=3072):
         offset += blockLength + hashLen
 
     return decrypted.rstrip(b'\x00')
-
-
-if __name__ == "__main__":
-    # data = "This is a test string that will be repeated a few times\n" * 3000000
-    keySize = 3072
-    # keySize must be  1024, 2048 or 3072
-    tobj = threadRSAcrypto()
-    start = time.time()
-    privKey, pubKey = rsaGenerator(keySize).generate()
-    print("Generating the key took {:.2f} seconds".format((time.time() - start)))
-
-    start = time.time()
-    data = ''.join(random.choice(string.ascii_letters) for j in range(1024)) * 100
-    data = bytes(data, 'utf-8')
-
-    print("It took {:.2f} milliseconds to generate the data".format((time.time() - start) * 1000))
-
-    print("The message is {:.2f} KB large".format(len(data) / 1024))
-
-    start = time.time()
-    sEncrypted = encryptRSAsingle(data, pubKey, keySize)
-    print("Single-threaded encryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    start = time.time()
-    encrypted = tobj.encrypt(data, pubKey, keySize)
-    print("Multi-threaded encryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    start = time.time()
-    sDecrypted = decryptRSAsingle(encrypted, privKey, keySize)
-    print("Single-threaded decryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    start = time.time()
-    decrypted = tobj.decrypt(encrypted, privKey, keySize)
-    print("Multi-threaded decryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    print("It is", data == decrypted, "that the output is the same as the input")
