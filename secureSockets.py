@@ -14,9 +14,6 @@ PRIVRSA, PUBRSA = rsaGenerator(3072).generate()
 
 # todo, add udp support
 # todo, add more socket functions
-# todo, figure out how to make accepted socks secureSockets instead of having them be secureSockets containing normal sockets
-# todo, maybe not make the secureSocket inherit the socket class, just contain one?
-# todo, maybe put some sort of calling filter in to just refer to self.sock when the self is called when appropriate?
 
 class secureSocket(socket.socket):
     def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
