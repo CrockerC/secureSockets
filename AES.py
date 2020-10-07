@@ -57,38 +57,3 @@ def genAESKey(size=256):
         key = key + struct.pack("Q", random.getrandbits(64))
         i += 1
     return key
-
-
-if __name__ == "__main__":
-    # data = "This is a test string that will be repeated a few times\n" * 3000000
-
-    start = time.time()
-    data = ''.join(random.choice(string.ascii_letters) for j in range(1024 * 1024)) * 10
-    data = bytes(data, 'utf-8')
-
-    print("It took {:.2f} seconds to generate the data".format((time.time() - start)))
-
-    print("The message is {:.2f} MB large".format(len(data) / 1024 / 1024))
-
-    key = genAESKey()
-
-    start = time.time()
-    compressed = compress(data)
-    print("Compression took {:.2f} seconds".format((time.time() - start)))
-    print("The compressed message is {:.2f} MB large".format(len(compressed) / 1024 / 1024))
-
-    start = time.time()
-    encrypted = encryptAllAES([compressed], key)[0]
-    print("Encryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    print("The encrypted message is {:.2f} MB large".format(len(encrypted) / 1024 / 1024))
-
-    start = time.time()
-    decrypted = decryptAllAES([encrypted], key)[0]
-    print("Decryption took {:.2f} milliseconds".format((time.time() - start) * 1000))
-
-    start = time.time()
-    decompressed = decompress(decrypted)  # decrypted and compressed should be the same
-    print("Decompression took {:.2f} seconds".format((time.time() - start)))
-
-    print("It is", data == decompressed, "that the output is the same as the input")
