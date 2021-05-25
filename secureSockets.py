@@ -1,6 +1,7 @@
 import socket
 from RSAenc import *
 from AES import *
+import os
 from typing import Any, Tuple, Union
 
 _Address = Union[tuple, str]
@@ -45,12 +46,13 @@ class secureSocket(socket.socket):
         return sSock, addr
 
     def sendall_sec(self, data: bytes, flags: int = 0) -> None:
+        data = os.urandom(8) + data  # this is to ensure that even the same message is different every time once encrypted
         encrypted = bytes(encryptAES(data, self.secKey), 'utf-8')
         self.sendall(self._addLen(encrypted), flags)
 
     def recv_sec(self, timeout: int = None, st: bool = False, flags: int = 0) -> bytes:
         data = self._recv_data(timeout, st, flags)
-        return decryptAES(data, self.secKey)
+        return decryptAES(data, self.secKey)[8:]
 
     def _recv_data(self, timeout=None, st=False, flags: int = 0):
         if timeout is not None:
